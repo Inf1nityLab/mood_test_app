@@ -1,7 +1,7 @@
 import 'package:dartz/dartz.dart';
+import '../../core/failures/failures.dart';
 import '../../domain/entities/emotion_entity.dart';
 import '../../domain/entities/mood_entry_entity.dart';
-import '../../domain/failures/failures.dart';
 import '../../domain/repositories/mood_repository.dart';
 import '../datasources/mood_local_data_source.dart';
 import '../models/mood_entry_model.dart';

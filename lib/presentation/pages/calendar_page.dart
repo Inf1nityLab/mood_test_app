@@ -39,8 +39,7 @@ class _FullScreenCalendarState extends State<FullScreenCalendar> {
           ), // Стиль выделенного дня
           hideScrollViewMonthWeekHeader: false,
           hideScrollViewTopHeader: true,
-          // Расширить на весь экран
-          // Стиль заголовка
+
         ),
         value: selectedDates,
         onValueChanged: (dates) {
