@@ -1,0 +1,673 @@
+import 'package:flutter/material.dart';
+
+class TestApp extends StatefulWidget {
+  const TestApp({super.key});
+
+  @override
+  State<TestApp> createState() => _TestAppState();
+}
+
+class _TestAppState extends State<TestApp> {
+  double _value = 50.0; // Текущее значение слайдера
+  final double _min = 0.0; // Минимум
+  final double _max = 100.0;
+  bool _isPressed = false;
+  int _selectedIndex = -1;
+
+  @override
+  Widget build(BuildContext context) {
+    // Ширина, которую мы хотим занять под слайдер
+    // Ширина, которую мы хотим занять под слайдер
+    final double sliderWidth = MediaQuery.of(context).size.width * 0.9;
+    // Радиус круга thumb
+    final double thumbRadius = 12.0;
+
+    // Нормируем текущее значение в [0..1]
+    final double normalizedValue = (_value - _min) / (_max - _min);
+
+    // Положение «ползунка» (с учётом вычитания диаметра)
+    final double thumbLeftPosition =
+        normalizedValue * (sliderWidth - thumbRadius * 3.7);
+
+    // Если не нажали – весь трек будет серый,
+    // если нажали – «прогресс» слева до ползунка станет оранжевым
+    final Color trackColor = Colors.grey.shade300; // основной цвет трека
+    final Color progressColor = _isPressed ? Colors.orange : trackColor;
+    return DefaultTabController(
+      length: 2, // Количество вкладок
+      child: Scaffold(
+        backgroundColor: const Color(0xFFFFFDFC),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFFFFFDFC),
+          elevation: 0,
+          centerTitle: true,
+          title: const Text(
+            '1 январь 09:00',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Color(0xFFBCBCBF),
+            ),
+          ),
+          actions: [
+            IconButton(
+              onPressed: () {
+                // Обработчик нажатия на кнопку
+              },
+              icon: const Icon(
+                Icons.calendar_month,
+                color: Color(0xFFBCBCBF),
+              ),
+            ),
+          ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(30),
+            child: _buildTabBar(),
+          ),
+        ),
+        body: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _text(text: 'Что ты чувствуешь?'),
+              _feelings(),
+              _selectedIndex == -1
+                  ? const SizedBox.shrink() // Пустое место
+                  : _renderEmotions(),
+              SizedBox(
+                height: 36,
+              ),
+              _text(text: 'Уровень стресса'),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 16),
+                height: 77,
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(13),
+                    color: Color(0xFFFFFFFF),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFB6A1C0).withOpacity(0.11),
+                        // Цвет тени с прозрачностью
+                        offset: const Offset(2, 4),
+                        // Смещение тени (X: 2, Y: 4)
+                        blurRadius: 10.8,
+                        // Радиус размытия тени
+                        spreadRadius: 0, // Радиус распространения тени
+                      ),
+                    ]),
+                child: Stack(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: List.generate(6, (index) {
+                        return Container(
+                          width: 2,
+                          height: 10,
+                          color: Colors.grey.shade400,
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 10),
+                    // Расстояние между тиками и слайдером
+                    SizedBox(
+                      width: sliderWidth,
+                      height: 50, // Общая высота виджета слайдера
+                      child: GestureDetector(
+                        // Срабатывает, когда пользователь прикасается к экрану
+                        onPanDown: (details) {
+                          setState(() {
+                            _isPressed =
+                                true; // Помечаем, что пользователь нажал
+                          });
+                          _updateValueByTap(details.localPosition.dx,
+                              sliderWidth, thumbRadius);
+                        },
+                        // Срабатывает при движении
+                        onPanUpdate: (details) {
+                          // Если вдруг не успел отметиться, что нажали (редкий случай),
+                          // всё равно отмечаем, что идёт перетаскивание
+                          setState(() {
+                            _isPressed = true;
+                          });
+                          _updateValueByDrag(details.localPosition.dx,
+                              sliderWidth, thumbRadius);
+                        },
+                        // Если нужно сбрасывать при окончании (не обязательно)
+                        onPanEnd: (details) {
+                          // Если требуется, можно вернуть _isPressed обратно в false,
+                          // но тогда «прогресс» снова станет серым. Ниже пример:
+                          // setState(() {
+                          //   _isPressed = false;
+                          // });
+                        },
+                        child: Stack(
+                          alignment: Alignment.centerLeft,
+                          children: [
+                            // Трек (линия)
+                            Container(
+                              height: 6, // Толщина трека
+                              decoration: BoxDecoration(
+                                color: trackColor,
+                                borderRadius: BorderRadius.only(
+                                  topRight: Radius.circular(32),
+                                  bottomRight: Radius.circular(32),
+                                ),
+                              ),
+                            ),
+                            // Закрашенная часть трека
+                            // Если _isPressed == false, то цвет совпадает с основным,
+                            // то есть мы фактически не видим «прогресс»
+                            Positioned(
+                              left: 0,
+                              right: sliderWidth -
+                                  thumbLeftPosition -
+                                  thumbRadius * 2,
+                              child: Container(
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: progressColor,
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: Radius.circular(32),
+                                    bottomLeft: Radius.circular(32),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // Ползунок (thumb)
+                            Positioned(
+                              left: thumbLeftPosition,
+                              child: CircleAvatar(
+                                  radius: thumbRadius,
+                                  backgroundColor: Colors.white,
+                                  child: CircleAvatar(
+                                    radius: thumbRadius - 6,
+                                    backgroundColor: Colors.orange,
+                                  )),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Низкий',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w400,
+                              color: Color(0xFF919EAB),
+                            ),
+                          ),
+                          Text(
+                            'Высокий',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w400,
+                              color: Color(0xFF919EAB),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+              ),
+              SizedBox(
+                height: 36,
+              ),
+              _text(text: 'Самооценка'),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20),
+                padding: EdgeInsets.symmetric(horizontal: 10, vertical: 16),
+                height: 77,
+                decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(13),
+                    color: Color(0xFFFFFFFF),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFB6A1C0).withOpacity(0.11),
+                        // Цвет тени с прозрачностью
+                        offset: const Offset(2, 4),
+                        // Смещение тени (X: 2, Y: 4)
+                        blurRadius: 10.8,
+                        // Радиус размытия тени
+                        spreadRadius: 0, // Радиус распространения тени
+                      ),
+                    ]),
+                child: Stack(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: List.generate(6, (index) {
+                        return Container(
+                          width: 2,
+                          height: 10,
+                          color: Colors.grey.shade400,
+                        );
+                      }),
+                    ),
+                    const SizedBox(height: 10),
+                    // Расстояние между тиками и слайдером
+                    SizedBox(
+                      width: sliderWidth,
+                      height: 50, // Общая высота виджета слайдера
+                      child: GestureDetector(
+                        // Срабатывает, когда пользователь прикасается к экрану
+                        onPanDown: (details) {
+                          setState(() {
+                            _isPressed =
+                                true; // Помечаем, что пользователь нажал
+                          });
+                          _updateValueByTap(details.localPosition.dx,
+                              sliderWidth, thumbRadius);
+                        },
+                        // Срабатывает при движении
+                        onPanUpdate: (details) {
+                          // Если вдруг не успел отметиться, что нажали (редкий случай),
+                          // всё равно отмечаем, что идёт перетаскивание
+                          setState(() {
+                            _isPressed = true;
+                          });
+                          _updateValueByDrag(details.localPosition.dx,
+                              sliderWidth, thumbRadius);
+                        },
+                        // Если нужно сбрасывать при окончании (не обязательно)
+                        onPanEnd: (details) {
+                          // Если требуется, можно вернуть _isPressed обратно в false,
+                          // но тогда «прогресс» снова станет серым. Ниже пример:
+                          // setState(() {
+                          //   _isPressed = false;
+                          // });
+                        },
+                        child: Stack(
+                          alignment: Alignment.centerLeft,
+                          children: [
+                            // Трек (линия)
+                            Container(
+                              height: 6, // Толщина трека
+                              decoration: BoxDecoration(
+                                color: trackColor,
+                                borderRadius: BorderRadius.only(
+                                  topRight: Radius.circular(32),
+                                  bottomRight: Radius.circular(32),
+                                ),
+                              ),
+                            ),
+                            // Закрашенная часть трека
+                            // Если _isPressed == false, то цвет совпадает с основным,
+                            // то есть мы фактически не видим «прогресс»
+                            Positioned(
+                              left: 0,
+                              right: sliderWidth -
+                                  thumbLeftPosition -
+                                  thumbRadius * 2,
+                              child: Container(
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: progressColor,
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: Radius.circular(32),
+                                    bottomLeft: Radius.circular(32),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // Ползунок (thumb)
+                            Positioned(
+                              left: thumbLeftPosition,
+                              child: CircleAvatar(
+                                  radius: thumbRadius,
+                                  backgroundColor: Colors.white,
+                                  child: CircleAvatar(
+                                    radius: thumbRadius - 6,
+                                    backgroundColor: Colors.orange,
+                                  )),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Низкий',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w400,
+                              color: Color(0xFF919EAB),
+                            ),
+                          ),
+                          Text(
+                            'Высокий',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w400,
+                              color: Color(0xFF919EAB),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  ],
+                ),
+              ),
+              SizedBox(
+                height: 20,
+              ),
+              _text(text: 'Заметки'),
+              _textField(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _updateValueByTap(double localDx, double width, double radius) {
+    setState(() {
+      // Конвертируем позицию нажатия в значение [min..max]
+      _value = _getValueFromPosition(localDx, width, radius).clamp(_min, _max);
+    });
+  }
+
+  /// Метод для обновления значения при движении (onPanUpdate)
+  void _updateValueByDrag(double localDx, double width, double radius) {
+    setState(() {
+      // Конвертируем позицию перетаскивания в значение [min..max]
+      _value = _getValueFromPosition(localDx, width, radius).clamp(_min, _max);
+    });
+  }
+
+  /// Преобразует позицию X внутри слайдера в значение слайдера в диапазоне [min..max].
+  double _getValueFromPosition(double localDx, double width, double radius) {
+    // «Эффективная» ширина трека, по которой двигается центр thumb
+    final double trackWidth = width - radius * 2;
+    // Не даём выйти за границы (чтобы центр thumb не уезжал за трек)
+    final double clampedDx = localDx.clamp(0, width);
+    // Переводим в 0..1
+    final double percent =
+        (clampedDx - radius).clamp(0, trackWidth) / trackWidth;
+    // Переводим долю в итоговое значение
+    return percent * (_max - _min) + _min;
+  }
+
+  Widget _button() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      child: SizedBox(
+        height: 44,
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: () {},
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Color(0xFFFF8702),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(69),
+            ),
+          ),
+          child: Text(
+            'Сохранить',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w400, color: Color(0xFFFFFFFF)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _textField() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 20),
+      decoration:
+          BoxDecoration(borderRadius: BorderRadius.circular(13), boxShadow: [
+        BoxShadow(
+          color: const Color(0xFFB6A1C0).withOpacity(0.11),
+          offset: const Offset(2, 4),
+          blurRadius: 10.8,
+          spreadRadius: 0, // Радиус распространения тени
+        ),
+      ]),
+      child: TextField(
+        maxLines: 4,
+        style: TextStyle(
+          color: Color(0xFF4C4C69),
+          fontSize: 14,
+          fontWeight: FontWeight.w400,
+        ),
+        decoration: InputDecoration(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(13),
+            borderSide: BorderSide.none,
+          ),
+          fillColor: Colors.white,
+          filled: true,
+        ),
+      ),
+    );
+  }
+
+  Widget _text({required String text}) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 20, bottom: 20),
+      child: Text(
+        text,
+        style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
+            color: Color(0xFF4C4C69)),
+      ),
+    );
+  }
+
+  Widget _feelings() {
+    return SizedBox(
+      height: 125,
+      child: ListView.builder(
+        itemCount: listEmotions.length,
+        shrinkWrap: true,
+        scrollDirection: Axis.horizontal,
+        itemBuilder: (context, index) {
+          final item = listEmotions[index];
+          final isSelected = _selectedIndex == index;
+
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedIndex = index; // Запоминаем выбор
+              });
+            },
+            child: Container(
+              height: 118,
+              width: 83,
+              alignment: Alignment.center,
+              margin: EdgeInsets.only(
+                left: index == 0 ? 20 : 0,
+                right: 12,
+                bottom: 2.5,
+                top: 2.5,
+              ),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(76),
+                color: Colors.white,
+                border: Border.all(
+                  color: isSelected ? Color(0xFFFF8702) : Colors.transparent,
+                  width: 2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0xFFB6A1C0).withOpacity(0.11),
+                    offset: Offset(2, 4),
+                    blurRadius: 10.8,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Картинка
+                  Image.asset(
+                    item.image,
+                    width: 40,
+                    height: 40,
+                  ),
+                  const SizedBox(height: 8),
+                  // Название чувства
+                  Text(
+                    item.title,
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _renderEmotions() {
+    // Берём список эмоций у выбранного элемента
+    final emotions = listEmotions[_selectedIndex].emotions;
+
+    // Если эмоций нет, можно вернуть какое-то сообщение или пустой контейнер
+    if (emotions.isEmpty || (emotions.length == 1 && emotions.first.isEmpty)) {
+      return Center(
+        child: Text('Нет дополнительных эмоций'),
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+      child: Wrap(
+        spacing: 8.0, // расстояние между элементами в строке
+        runSpacing: 8.0, // расстояние между строками
+        children: emotions.map((text) {
+          return Container(
+            height: 21,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            margin: EdgeInsets.only(right: 10),
+            decoration: BoxDecoration(
+                color: Color(0xFFFFFFFF),
+                borderRadius: BorderRadius.circular(3),
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0xFFB6A1C0).withOpacity(0.11),
+                    offset: Offset(2, 4),
+                    blurRadius: 10.8,
+                  ),
+                ]),
+            child: Text(
+              text,
+              style: const TextStyle(
+                  color: Color(0xFF4C4C69),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w400),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  /// Создает TabBar с кастомным дизайном
+  Widget _buildTabBar() {
+    return Container(
+      height: 30,
+      margin: const EdgeInsets.symmetric(horizontal: 43),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(47),
+        color: const Color(0xFFF2F2F2),
+      ),
+      child: TabBar(
+        overlayColor: const MaterialStatePropertyAll(Colors.transparent),
+        tabAlignment: TabAlignment.center,
+        indicatorSize: TabBarIndicatorSize.tab,
+        indicator: BoxDecoration(
+          borderRadius: BorderRadius.circular(50),
+          color: const Color(0xFFFF8702),
+        ),
+        dividerColor: const Color(0xFFFFFDFC),
+        tabs: [
+          _buildTab(
+            icon: Icons.home,
+            text: 'Дневник настроения',
+            iconColor: Colors.white,
+            textColor: Colors.white,
+          ),
+          _buildTab(
+            icon: Icons.home,
+            text: 'Статистика',
+            iconColor: const Color(0xFFBCBCBF),
+            textColor: const Color(0xFFBCBCBF),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Создает одну вкладку с иконкой и текстом
+  Widget _buildTab({
+    required IconData icon,
+    required String text,
+    required Color iconColor,
+    required Color textColor,
+  }) {
+    return Tab(
+      icon: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: iconColor, size: 14),
+          const SizedBox(width: 6), // Отступ между иконкой и текстом
+          Text(
+            text,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: textColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class Emotions {
+  final String title;
+  final String image;
+  final List<String> emotions;
+
+  Emotions({required this.title, required this.image, required this.emotions});
+}
+
+List<Emotions> listEmotions = [
+  Emotions(title: 'Радость', image: 'assets/images/joy.png', emotions: [
+    "Радость",
+    "Грусть",
+    "Гнев",
+    "Страх",
+    "Удивление",
+    "Отвращение",
+    "Любовь",
+    "Счастье",
+    "Восторг",
+    "Эйфория",
+    "Обида",
+    "Удовлетворение"
+  ]),
+  Emotions(title: 'Страх', image: 'assets/images/fear.png', emotions: ['']),
+  Emotions(
+      title: 'Бешенство', image: 'assets/images/rabies.png', emotions: ['']),
+  Emotions(title: 'Грусть', image: 'assets/images/sadness.png', emotions: ['']),
+  Emotions(
+      title: 'Спокойствие', image: 'assets/images/calm.png', emotions: ['']),
+  Emotions(title: 'Сила', image: 'assets/images/power.png', emotions: ['']),
+];
